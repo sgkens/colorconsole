@@ -221,7 +221,7 @@ Function New-ColorConsole() {
 }
 
 $cmdletconfig = @{
-    function = @('New-ColorConsole','Write-Color')
-    alias    = @('csole','wsole')
+    function = @('New-ColorConsole')
+    alias    = @('csole')
 }
 Export-ModuleMember @cmdletconfig
