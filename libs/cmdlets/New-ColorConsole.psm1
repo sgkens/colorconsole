@@ -44,7 +44,7 @@
   https://en.wikipedia.org/wiki/ANSI_escape_code
 #>
 
-Function New-Color() {
+Function New-ColorConsole() {
     [CmdletBinding()]
     [Alias('csole')]
     [OutputType([string])]
@@ -152,23 +152,23 @@ Function New-Color() {
                 default { return "$colorWhite$string$colorReset" }
             } #! Add switch here for background color if needed
             switch ($bgcolor) {
-                "red" { return "$colorBgRed$string$colorReset" }
-                "yellow" { return "$colorBgYellow$string$colorReset" }
-                "green" { return "$colorBgGreen$string$colorReset" }
-                "blue" { return "$colorBgBlue$string$colorReset" }
-                "white" { return "$colorBgWhite$string$colorReset" }
-                "black" { return "$colorBgBlack$string$colorReset" }
-                "cyan" { return "$colorBgCyan$string$colorReset" }
-                "magenta" { return "$colorBgMagenta$string$colorReset" }
-                "gray" { return "$colorBgDarkGray$string$colorReset" }
-                "darkgray" { return "$colorBgDarkGray$string$colorReset" }
-                "darkblue" { return "$colorBgDarkBlue$string$colorReset" }
-                "darkyellow" { return "$colorBgDarkYellow$string$colorReset" }
-                "darkgreen" { return "$colorBgDarkGreen$string$colorReset" }
-                "darkred" { return "$colorBgDarkRed$string$colorReset" }
-                "darkcyan" { return "$colorBgDarkCyan$string$colorReset" }
-                "darkmagenta" { return "$colorBgDarkMagenta$string$colorReset" }
-                default { return "$colorBgWhite$string$colorReset" }
+                "red" { return "$colorBgRed$string$colorBgReset" }
+                "yellow" { return "$colorBgYellow$string$colorBgReset" }
+                "green" { return "$colorBgGreen$string$colorBgReset" }
+                "blue" { return "$colorBgBlue$string$colorBgReset" }
+                "white" { return "$colorBgWhite$string$colorBgReset" }
+                "black" { return "$colorBgBlack$string$colorBgReset" }
+                "cyan" { return "$colorBgCyan$string$colorBgReset" }
+                "magenta" { return "$colorBgMagenta$string$colorBgReset" }
+                "gray" { return "$colorBgDarkGray$string$colorBgReset" }
+                "darkgray" { return "$colorBgDarkGray$string$colorBgReset" }
+                "darkblue" { return "$colorBgDarkBlue$string$colorBgReset" }
+                "darkyellow" { return "$colorBgDarkYellow$string$colorBgReset" }
+                "darkgreen" { return "$colorBgDarkGreen$string$colorBgReset" }
+                "darkred" { return "$colorBgDarkRed$string$colorBgReset" }
+                "darkcyan" { return "$colorBgDarkCyan$string$colorBgReset" }
+                "darkmagenta" { return "$colorBgDarkMagenta$string$colorBgReset" }
+                default { return "$colorBgWhite$string$colorBgReset" }
             }
         }
         else {
@@ -221,7 +221,7 @@ Function New-Color() {
 }
 
 $cmdletconfig = @{
-    function = @('New-Color')
-    alias    = @('csole')
+    function = @('New-ColorConsole','Write-Color')
+    alias    = @('csole','wsole')
 }
 Export-ModuleMember @cmdletconfig
