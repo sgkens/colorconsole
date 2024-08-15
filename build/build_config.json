@@ -1,0 +1,25 @@
+{
+    "moduleName"  : "colorconsole",
+    "releaseType" : "public",
+    "gitUser"     : "sgkens",
+    "gitGroup"    : "powershell",
+    "gitlabID"    : "195",
+    "iconUrl"     : "https://gitlab.snowlab.tk/sgkens/resources/-/blob/raw/modules/ColorConsole/dist/icon.png",
+    "ModuleFiles" : 
+    [
+        "coforge.psm1",
+        "coforge.psd1",
+        "LICENSE",
+        "icon.png"
+    ],
+    "ModuleFolders": 
+    [
+        "libs",
+        "tools"
+    ],
+    "ModuleExclude": 
+    [
+
+    ]
+
+}

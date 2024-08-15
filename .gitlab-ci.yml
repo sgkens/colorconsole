@@ -1,38 +1,186 @@
 stages:
-  - build # dependancies
-  - pester # pester test script
-  - test_pwsh # test powershell core latest
-  - test_powershell # test powershell
-  - deploy_psprivate # deploy to psgallary private instance
-  - deploy_psgallary # deploy to psgallary
-build-job:
+  - testLibs # Run tests on libs
+  - build # Build the module
+  - testModule # Run tests build module
+  - deployLocal # Deploy to local, gitlab, proget(nuget,choco,psgallary)
+  - tag # Create tag with version - Generated version with commitfusion
+  - release # Create Release from tag
+  # - deploy # Deploy to chocolatey, Powershell Gallery
+
+# --------------------------------
+# Pester Test Stage
+pester_test:
+  stage: testLibs
+  tags:
+    - windows
+  script:
+    - echo "Running test -> pester_test"
+    - pwsh
+    - install-module -name 'pester' -RequiredVersion '5.5.0' -Repository 'psgallery' -confirm:$false
+    - Import-Module -name pester -RequiredVersion '5.5.0'
+    - invoke-Pester -Script .\test\Test-Unit-Pester.ps1 -CI || exit 1
+
+# --------------------------------
+# Pester Test Stage & Coverage
+pester_test_coverage:
+  stage: test
+  tags:
+    - windows
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "testLibs" && $CI_BUILD_STATUS == "success"'
+  script:
+    - echo "Running test -> pester_test_coverage"
+    - pwsh
+    - install-module -name 'pester' -RequiredVersion '5.5.0' -Repository 'psgallery' -confirm:$false
+    - Import-Module -name pester -RequiredVersion '5.5.0'
+    - invoke-Pester -Script .\build\scripts\bt0-ci-test-pester.ps1 -CI || exit 1
+  artifacts:
+    paths:
+    - ./coverage.xml
+
+# --------------------------------
+# Script Analyzer Test Stage
+script_analyzer:
+  stage: test
+  tags:
+    - windows
+  script:
+    - echo "Running test -> script_analyzer"
+    - pwsh
+    - find-module -name PSScriptAnalyzer -Repository PSGallery | install-module -Scope CurrentUser -Force -SkipPublisherCheck
+    - Import-Module -Name PSScriptAnalyzer   
+    - ./build/scripts/bt1-p2-ci-test-pssa.ps1
+  artifacts:
+    paths:
+    - ./coverage.xml
+
+# --------------------------------
+# Build Module Stage
+build_module:
   stage: build
+  tags:
+    - windows
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "test" && $CI_BUILD_STATUS == "success"'
+  script:
+    - pwsh
+    - Find-Module -name 'psmpacker' -repository 'powershell' | install-Module -force
+    - import-module -name 'psmpacker'
+    - .\build\scripts\bt1-ci-build-module.ps1
+  artifacts:
+    paths:
+    - ./dist/*
+    - ./coverage.xml
+
+# --------------------------------
+# Create Nuget Package Stage
+create_nuget_Package:
+  stage: build
+  tags:
+    - windows
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "test" && $CI_BUILD_STATUS == "success"'
+  script:
+    - pwsh
+    - find-Module -Repository 'powershell' -Name 'nupsforge' | Install-module -force
+    - Import-Module -Name 'nupsforge' -force
+    - .\build\scripts\bt2-ci-create-packages.ps1
+  artifacts:
+    paths:
+    - ./dist/*
+    - ./coverage.xml
+
+# --------------------------------
+# Deploy GitLab Package Stage
+deploy_gitlab_package:
+  stage: deploylocal
+  tags:
+    - windows
+  script:
+    - pwsh
+    - Install-Module -Name csverify -force | Import-module -force
+    - .\build\scripts\bt3-ci-deploy-pushtogitlab.ps1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "build" && $CI_BUILD_STATUS == "success"'
+  artifacts:
+    paths:
+    - ./dist/*
+    - ./coverage.xml
+
+# --------------------------------
+# Deploy Proget Packages Stage
+deploy_proget_packages:
+  stage: deploylocal
+  tags:
+    - windows
   script:
     - pwsh.exe
-    - write-host -f green "template ci\cd config successfull"
-pester-job:
-  stage: pester
+    - .\build\scripts\bt4-ci-deploy-pushtoproget.ps1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "build" && $CI_BUILD_STATUS == "success"'
+  artifacts:
+    paths:
+    - ./dist/*
+    - ./coverage.xml
+
+# --------------------------------
+# Deploy Chocolatey Package Stage
+deploy_chocolatey_package:
+  stage: deploy
+  tags:
+    - windows
   script:
     - pwsh.exe
-    - write-host -f green "template ci\cd config successfull"
-test-pwsh-job:
-  stage: test_pwsh
+    - .\build\scripts\BT5-CI-deploy-PushToChoco.ps1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploylocal" && $CI_BUILD_STATUS == "success"'
+  artifacts:
+    paths:
+    - ./dist/*
+    - ./coverage.xml
+
+# --------------------------------
+# Deploy PSGallary Package Stage
+deploy_psgal_package:
+  stage: deploy
+  tags:
+    - windows
   script:
     - pwsh.exe
-    - write-host -f green "template ci\cd config successfull"
-test-powershell-job:
-  stage: test_powershell
-  script:
-    - powershell.exe
-    - write-host -f green "template ci\cd config successfull"
-psgallary-deploy-job:
-  stage: deploy_psgallary
+    - .\build\scripts\bt6-ci-deploy-psgallary.ps1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploylocal" && $CI_BUILD_STATUS == "success"'
+
+# --------------------------------
+# Create Release Stage
+create_tag:
+  stage: release
+  tags:
+    - windows
+  script: 
+    - pwsh.exe
+    - install-module -name commitfusion -force | import-module -force
+    - $semver_version = (Get-GitAutoVersion).version
+    - git config --global user.name "${GITLAB_NAME}"
+    - git config --global user.email "${GITLAB_EMAIL}"
+    - git tag "$semver_version"
+    - git push --tags http://${$GITLAB_API_KEY}@$https://gitlab.lab.davilion.online/powershell/commitfusion.git HEAD:main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploy" && $CI_BUILD_STATUS == "success"'
+  artifacts:
+    paths:
+      - Build.gz
+      - ./dist/*
+
+# -------------------------------------
+# Deploy Coverage to Coverails.io Stage
+deploy_coverage:
+  stage: release
+  tags:
+    - windows
   script:
     - pwsh.exe
-psprivate-deploy-job:
-  stage: deploy_psprivate
-  script:
-    - pwsh.exe
-    - write-host -f green "template ci\cd config successfull"
-#include:
-#  - template: auto-devops.gitlab-ci.yml
+    - .\bt8-ci-deploy-coveralls-report.ps1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploy" && $CI_BUILD_STATUS == "success"'
+
