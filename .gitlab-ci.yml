@@ -1,7 +1,6 @@
 stages:
-  - testLibs # Run tests on libs
+  - test # Run tests on libs
   - build # Build the module
-  - testModule # Run tests build module
   - deployLocal # Deploy to local, gitlab, proget(nuget,choco,psgallary)
   - tag # Create tag with version - Generated version with commitfusion
   - release # Create Release from tag
@@ -10,7 +9,7 @@ stages:
 # --------------------------------
 # Pester Test Stage
 pester_test:
-  stage: testLibs
+  stage: test
   tags:
     - windows
   script:
@@ -27,7 +26,7 @@ pester_test_coverage:
   tags:
     - windows
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "testLibs" && $CI_BUILD_STATUS == "success"'
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "test" && $CI_BUILD_STATUS == "success"'
   script:
     - echo "Running test -> pester_test_coverage"
     - pwsh
@@ -125,31 +124,31 @@ deploy_proget_packages:
 
 # --------------------------------
 # Deploy Chocolatey Package Stage
-deploy_chocolatey_package:
-  stage: deploy
-  tags:
-    - windows
-  script:
-    - pwsh.exe
-    - .\build\scripts\BT5-CI-deploy-PushToChoco.ps1
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploylocal" && $CI_BUILD_STATUS == "success"'
-  artifacts:
-    paths:
-    - ./dist/*
-    - ./coverage.xml
+# deploy_chocolatey_package:
+#   stage: deploy
+#   tags:
+#     - windows
+#   script:
+#     - pwsh.exe
+#     - .\build\scripts\BT5-CI-deploy-PushToChoco.ps1
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploylocal" && $CI_BUILD_STATUS == "success"'
+#   artifacts:
+#     paths:
+#     - ./dist/*
+#     - ./coverage.xml
 
-# --------------------------------
-# Deploy PSGallary Package Stage
-deploy_psgal_package:
-  stage: deploy
-  tags:
-    - windows
-  script:
-    - pwsh.exe
-    - .\build\scripts\bt6-ci-deploy-psgallary.ps1
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploylocal" && $CI_BUILD_STATUS == "success"'
+# # --------------------------------
+# # Deploy PSGallary Package Stage
+# deploy_psgal_package:
+#   stage: deploy
+#   tags:
+#     - windows
+#   script:
+#     - pwsh.exe
+#     - .\build\scripts\bt6-ci-deploy-psgallary.ps1
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main" && $CI_BUILD_STAGE == "deploylocal" && $CI_BUILD_STATUS == "success"'
 
 # --------------------------------
 # Create Release Stage
